@@ -32,9 +32,17 @@ def calculate_avg_dot_product(vectors):
     return total_dot_product / num_pairs
 
 # Hàm phát hiện cạnh và chuyển thành vector
-def edge_detection_to_vector(image, threshold1, threshold2):
+def edge_detection_to_vector(image, threshold1=50, threshold2=150, kmedian_blurred=1, kgaussian_blurred=(1,1), sigma=0):
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    median_blurred = cv2.medianBlur(image, kmedian_blurred)  # Kernel size = 5
+
+    # Làm mờ Gaussian làm mờ mà vẫn giữ chi tiết 
+    gaussian_blurred = cv2.GaussianBlur(median_blurred, kgaussian_blurred, sigma)  # Kernel size (5x5) và sigma = 0
+
     # Phát hiện cạnh bằng Canny
-    edges = cv2.Canny(image, threshold1, threshold2)
+    edges = cv2.Canny(gaussian_blurred, threshold1, threshold2)
 
     # Tìm các điểm cạnh
     points = np.argwhere(edges > 0)
@@ -73,3 +81,34 @@ def vector_to_image(points, image_shape):
         if 0 <= x < image_shape[1] and 0 <= y < image_shape[0]:
             reconstructed_image[y, x] = 255
     return reconstructed_image
+
+
+def resize_edge_vectors(points, vectors, original_size, new_size):
+    """
+    Resize các vector cạnh và điểm sao cho phù hợp với kích thước ảnh mới.
+    
+    Parameters:
+    - points: Danh sách tọa độ điểm cạnh (numpy array).
+    - vectors: Danh sách vector gradient (numpy array).
+    - original_size: Kích thước gốc của ảnh (height, width).
+    - new_size: Kích thước mới của ảnh (height, width).
+
+    Returns:
+    - resized_points: Điểm cạnh đã được resize.
+    - resized_vectors: Vector gradient đã được resize.
+    """
+    # Tính tỷ lệ thay đổi kích thước
+    scale_x = new_size[1] / original_size[1]  # Tỷ lệ theo chiều ngang
+    scale_y = new_size[0] / original_size[0]  # Tỷ lệ theo chiều dọc
+    
+    # Resize điểm cạnh
+    resized_points = points.copy()
+    resized_points[:, 0] = points[:, 0] * scale_x  # Điều chỉnh tọa độ x
+    resized_points[:, 1] = points[:, 1] * scale_y  # Điều chỉnh tọa độ y
+    
+    # Resize vector gradient
+    resized_vectors = vectors.copy()
+    resized_vectors[:, 0] *= scale_x  # Điều chỉnh độ dài vector theo x
+    resized_vectors[:, 1] *= scale_y  # Điều chỉnh độ dài vector theo y
+
+    return resized_points, resized_vectors
