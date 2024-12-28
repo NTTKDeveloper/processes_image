@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm  # Thư viện để hiển thị thanh tiến trình
+import time 
 
 # Hàm căn chỉnh vector vào trung tâm ảnh
 def center_vectors(points, vectors, image_size):
@@ -32,28 +33,35 @@ def calculate_avg_dot_product(vectors):
     return total_dot_product / num_pairs
 
 # Hàm phát hiện cạnh và chuyển thành vector
-def edge_detection_to_vector(image, threshold1=50, threshold2=150, kmedian_blurred=1, kgaussian_blurred=(1,1), sigma=0):
+def edge_detection_to_vector(image, threshold1=50, threshold2=150, kmedian_blurred=1, kgaussian_blurred=(1, 1), sigma=0):
+    start_time = time.time()  # Bắt đầu đo thời gian
+    
+    # Chuyển đổi ảnh sang thang độ xám
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    median_blurred = cv2.medianBlur(image, kmedian_blurred)  # Kernel size = 5
+    # Làm mờ bằng bộ lọc trung vị
+    median_blurred = cv2.medianBlur(image, kmedian_blurred)
 
-    # Làm mờ Gaussian làm mờ mà vẫn giữ chi tiết 
-    gaussian_blurred = cv2.GaussianBlur(median_blurred, kgaussian_blurred, sigma)  # Kernel size (5x5) và sigma = 0
+    # Làm mờ Gaussian
+    gaussian_blurred = cv2.GaussianBlur(median_blurred, kgaussian_blurred, sigma)
 
     # Phát hiện cạnh bằng Canny
     edges = cv2.Canny(gaussian_blurred, threshold1, threshold2)
 
     # Tìm các điểm cạnh
     points = np.argwhere(edges > 0)
-    points = points[:, [1, 0]]
+    points = points[:, [1, 0]]  # Đổi thứ tự x, y
 
     # Tính vector gradient
     grad_x = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)
     grad_y = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=3)
-
     vectors = np.column_stack((grad_x[points[:, 1], points[:, 0]], grad_y[points[:, 1], points[:, 0]]))
-    return points, vectors
+
+    end_time = time.time()  # Kết thúc đo thời gian
+    execution_time_ms = (end_time - start_time) * 1000  # Đổi sang mili giây
+
+    return points, vectors, execution_time_ms
 
 # Chuẩn hóa vector
 def normalize_vectors(vectors):
