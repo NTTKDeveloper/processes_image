@@ -33,7 +33,7 @@ def calculate_avg_dot_product(vectors):
     return total_dot_product / num_pairs
 
 # Hàm phát hiện cạnh và chuyển thành vector
-def edge_detection_to_vector(image, threshold1=50, threshold2=150, kmedian_blurred=1, kgaussian_blurred=(1, 1), sigma=0):
+def edge_detection_to_vector(image, threshold1=50, threshold2=150, kmedian_blurred=1, kbox_blurred=(1, 1)):
     start_time = time.time()  # Bắt đầu đo thời gian
     
     # Chuyển đổi ảnh sang thang độ xám
@@ -44,11 +44,12 @@ def edge_detection_to_vector(image, threshold1=50, threshold2=150, kmedian_blurr
     median_blurred = cv2.medianBlur(image, kmedian_blurred)
 
     # Làm mờ Gaussian
-    gaussian_blurred = cv2.GaussianBlur(median_blurred, kgaussian_blurred, sigma)
+    # gaussian_blurred = cv2.GaussianBlur(median_blurred, kgaussian_blurred, sigma)
+    blurred = cv2.blur(median_blurred, kbox_blurred)
 
     # Phát hiện cạnh bằng Canny
-    edges = cv2.Canny(gaussian_blurred, threshold1, threshold2)
-
+    edges = cv2.Canny(blurred, threshold1, threshold2)
+    
     # Tìm các điểm cạnh
     points = np.argwhere(edges > 0)
     points = points[:, [1, 0]]  # Đổi thứ tự x, y
