@@ -49,7 +49,7 @@ def edge_detection_to_vector(image, threshold1=50, threshold2=150, kmedian_blurr
 
     # Phát hiện cạnh bằng Canny
     edges = cv2.Canny(blurred, threshold1, threshold2)
-    
+
     # Tìm các điểm cạnh
     points = np.argwhere(edges > 0)
     points = points[:, [1, 0]]  # Đổi thứ tự x, y
@@ -121,3 +121,47 @@ def resize_edge_vectors(points, vectors, original_size, new_size):
     resized_vectors[:, 1] *= scale_y  # Điều chỉnh độ dài vector theo y
 
     return resized_points, resized_vectors
+
+#Cửa sổ trượt để xử lí hình ảnh
+def sliding_window(image, size=(28, 28), position=(0, 0)):
+    """
+    Cắt một ảnh nhỏ từ ảnh gốc, nếu vượt ngoài phạm vi sẽ thêm padding màu đen.
+
+    Args:
+        image (ndarray): Ảnh đầu vào (ảnh gốc).
+        size (tuple): Kích thước ảnh cần cắt (chiều rộng, chiều cao).
+        position (tuple): Tọa độ góc trên bên trái (x, y) của khung cắt.
+
+    Returns:
+        ndarray: Ảnh đã cắt (bao gồm padding nếu cần).
+    """
+    width, height = size
+    x, y = position
+
+    # Kích thước ảnh gốc
+    img_h, img_w, _ = image.shape
+
+    # Xác định biên trong ảnh gốc
+    x_start = max(0, x)
+    y_start = max(0, y)
+    x_end = min(img_w, x + width)
+    y_end = min(img_h, y + height)
+
+    # Cắt phần nằm trong ảnh
+    cropped_part = image[y_start:y_end, x_start:x_end]
+
+    # Tính toán kích thước phần cần padding
+    pad_top = max(0, -y)  # Padding trên
+    pad_left = max(0, -x)  # Padding trái
+    pad_bottom = max(0, (y + height) - img_h)  # Padding dưới
+    pad_right = max(0, (x + width) - img_w)  # Padding phải
+
+    # Thêm padding bằng màu đen
+    cropped_with_padding = cv2.copyMakeBorder(
+        cropped_part,
+        pad_top, pad_bottom, pad_left, pad_right,
+        borderType=cv2.BORDER_CONSTANT,
+        value=(0, 0, 0)  # Màu đen
+    )
+
+    return cropped_with_padding
